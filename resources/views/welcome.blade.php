@@ -96,7 +96,7 @@
                             </div>
                             <div class="right">
                                 <div class="audio1">
-                                    <audio id="tau-radio" class="audio" controls autoplay muted preload="auto" style="width: 100%;">
+                                    <audio id="tau-radio" class="audio" controls muted preload="auto" style="width: 100%;">
                                         <source src="{{ url('/radio-proxy') }}" type="audio/mpeg">
                                         Your browser does not support the audio element.
                                     </audio>
@@ -220,31 +220,54 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const audio = document.getElementById('tau-radio');
+            const audioElement = document.getElementById('tau-radio');
 
-            if (audio) {
-                // Initialize MediaElementJS with muted autoplay
-                new MediaElementPlayer(audio, {
-                    startVolume: 0,
-                    success: function (media) {
+            if (audioElement) {
+                new MediaElementPlayer(audioElement, {
+                    // Initial volume set to 0 to try and bypass browser blocks
+                    startVolume: 0, 
+                    features: ['playpause', 'current', 'progress', 'duration', 'volume', 'fullscreen'],
+                    success: function (media, node, player) {
+                        
+                        // 1. Ensure it is muted immediately
                         media.setMuted(true);
 
-                        // Try silent autoplay
-                        media.play().catch(() => {});
+                        // 2. Try to play (Muted Autoplay)
+                        var playPromise = media.play();
+
+                        // 3. Handle the "NotAllowedError" gracefully
+                        if (playPromise !== undefined) {
+                            playPromise.then(_ => {
+                                console.log("Autoplay started successfully (muted).");
+                            }).catch(error => {
+                                console.log("Autoplay was blocked by the browser. Waiting for user interaction.");
+                                // We don't do anything here. The player simply stays paused 
+                                // and the user will click the Play button when ready.
+                            });
+                        }
+                        
+                        // 4. Global listener: Unmute on the FIRST click anywhere on the page
+                        // This is a common trick to get audio working as soon as the user touches the site
+                        function enableAudio() {
+                            if (media.muted) {
+                                media.setMuted(false);
+                                media.setVolume(1.0); // Restore volume
+                                console.log("User interacted: Audio unmuted.");
+                            }
+                            // Remove this listener so it doesn't fire on every click
+                            document.removeEventListener('click', enableAudio);
+                            document.removeEventListener('keydown', enableAudio);
+                            document.removeEventListener('touchstart', enableAudio);
+                        }
+
+                        // Listen for any interaction
+                        document.addEventListener('click', enableAudio);
+                        document.addEventListener('keydown', enableAudio);
+                        document.addEventListener('touchstart', enableAudio);
                     }
                 });
             }
         });
-
-        // Unmute on first click anywhere on the page
-        document.addEventListener('click', function () {
-            const audio = document.getElementById('tau-radio');
-
-            if (audio && audio.player) {
-                audio.player.setMuted(false);
-                audio.player.play().catch(() => {});
-            }
-        }, { once: true });
     </script>
 </body>
 
