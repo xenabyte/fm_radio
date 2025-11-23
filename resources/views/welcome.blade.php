@@ -97,7 +97,7 @@
                             <div class="right">
                                 <div class="audio1">
                                     <audio id="tau-radio" class="audio" controls autoplay muted preload="auto" style="width: 100%;">
-                                        <source src="http://176.58.96.67:8019/stream" type="audio/mpeg">
+                                        <source src="{{ url('/radio-proxy') }}" type="audio/mpeg">
                                         Your browser does not support the audio element.
                                     </audio>
                                 </div>
